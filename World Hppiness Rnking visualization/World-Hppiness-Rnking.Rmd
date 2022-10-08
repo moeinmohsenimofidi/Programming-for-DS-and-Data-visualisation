@@ -1,0 +1,1917 @@
+---
+Title: "World Happiness Ranking"
+Author: "Seyedmoein Mohsenimofidi"
+ ---
+
+# Preliminary project Explanation
+
+                                * WORLD HAPPINESS RANKING 2015-2016 *
+
+In this project, I am working on Dataset about world happiness ranking between the years 2015 and 2016. I collected this dataset from the Kaggle website which contains 2 different Dataset about years 2015 and 2016, which you can find in the zip file. Fortunately, this dataset does not need to be cleaned as the author has already done this, but in the Prepossessing part I will first try to check the probability of the missing or NA values and correct them. 
+
+>The happiness scores and rankings use data from the Gallup World Poll. The scores are based on answers to the main life evaluation question asked in the poll. This question, known as the Cantril ladder, asks respondents to think of a ladder with the best possible life for them being a 10 and the worst possible life being a 0 and to rate their own current lives on that scale. The scores are from nationally representative samples for the years 2013-2016 and use the Gallup weights to make the estimates representative. The columns following the happiness score estimate the extent to which each of six factors – economic production, social support, life expectancy, freedom, absence of corruption, and generosity – contribute to making life evaluations higher in each country than they are in Dystopia, a hypothetical country that has values equal to the world’s lowest national averages for each of the six factors. They have no impact on the total score reported for each country, but they do explain why some countries rank higher than others.
+
+# Basic understanding for column meanings 
+
+
+
+>GDP per capita:GDP per capita stands for Gross Domestic Product (GDP) per capita (per person). It is derived from a straightforward division of total GDP by the population.
+
+>Social Support: Social support means having friends and other people, including family, to turn to in times of need or crisis
+
+>Healthy Life Expectancy at Birth: The average equivalent number of years of full health that a newborn could expect to live
+
+>Freedom to make Life Choices: Freedom of choice describes an individual's opportunity and autonomy to perform an action selected from at least two available options, unconstrained by external parties.
+
+>Generosity: the quality of kindness and generous.
+
+>Government  corruption: perceived levels of public sector corruption, as determined by expert assessments and opinion surveys
+
+
+>The following columns: GDP per Capita, Family, Life Expectancy, Freedom, Generosity, Trust Government Corruption describe the extent to which these factors contribute in evaluating the happiness in each country.
+The Dystopia Residual metric actually is the Dystopia Happiness Score(1.85) + the Residual value or the unexplained value for each country.
+
+
+
+# objectives of the project
+
+>    What countries or regions rank the highest in overall happiness and each of the six factors contributing to happiness?
+
+>    which factors have more correlation with happiness score in both years? Why?
+
+>    Did any country experience a significant increase or decrease in happiness?
+
+>    Did any country experience a significant increase or decrease in each of the six factors contrbuting to happiness?How?
+
+
+# Table of Contents
+
+>    Read the Datasets and work on it in preprocessing steps 
+
+>    Correlation Analysis by using the appropriate plot in different years seperetely
+
+>    Countries Analysis to find the increment or decrement for each index between 2015 and 2016
+
+
+
+#  Load Dataset
+
+>First of all, we are going to load the libraries that we're going to use in this analysis.
+
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(colorspace)
+library(hrbrthemes)
+library(GGally)
+library(ggalt)
+library(corrplot)
+library(rworldmap)
+
+```
+
+```{r}
+h_15 <- read.csv("2015.csv")
+h_16 <- read.csv("2016.csv")
+
+head(h_15)
+head(h_16)
+
+```
+
+```{r}
+tail(h_15)
+tail(h_16)
+```
+
+
+
+
+```{r}
+
+distinct(h_15, Region)
+distinct(h_16, Region)
+
+```
+
+
+ in this step, we start to chek the probability of the missing or NA values in our both dataset,furtunatly ther is not missing or NA values in our datasets.
+
+In addition,for the making the better nad readable datasets i did three changes in Datasets:
+>   1- merging  the regions in a same continent( i consider Middle East and North Africa together) and consider them as a continent
+>   2- Adding  new column "happiness_status" according to the values that i found in happiness score column and divide the countries into 4 categories (least happy,somewhat happy,happy and very happy)
+>   3- changing the columns names to become more readable
+
+
+```{r}
+h15<-  mutate(h_15,year = 2015) 
+h15 <- h15 %>% 
+drop_na()
+# change region to factor
+h15$Region <- as.factor(h15$Region)
+
+     
+h15_area <- mutate(h15, Region = fct_collapse(Region,
+                    Europe = c("Western Europe", "Central and Eastern Europe"),
+                    Africa = c("Sub-Saharan Africa") ,
+                    Asia = c("Southern Asia", "Eastern Asia", "Southeastern Asia"),
+                    Australia = c("Australia and New Zealand"),
+                    Latin.America = c("Latin America and Caribbean")))
+
+h15_area_rank <-  mutate(h15_area, happiness_status = case_when(
+       Happiness.Score <= 4.526 ~ "least happy",
+       Happiness.Score > 4.526 & Happiness.Score < 5.376 ~ "somewhat happy",
+       Happiness.Score >= 5.376 & Happiness.Score < 6.244 ~ "happy",
+       Happiness.Score >= 6.244 ~ "very happy")) 
+
+happy_15 <-  rename(h15_area_rank,
+                Happiness_Rank = Happiness.Rank,
+                Happiness_Score = Happiness.Score,
+                GDP_per_Capita = Economy..GDP.per.Capita.,
+                Life_Expectancy = Health..Life.Expectancy.,
+                Government_Corruption = Trust..Government.Corruption.,
+                Dystopia_Residual = Dystopia.Residual) 
+  
+head(happy_15)
+
+```
+
+
+
+
+```{r}
+h16<-  mutate(h_16,year = 2016) 
+h16 <- h16 %>%
+drop_na()
+# change region to factor
+h16$Region <- as.factor(h16$Region)
+
+
+h16_area <- mutate(h16, Region = fct_collapse(Region,
+                    Europe = c("Western Europe", "Central and Eastern Europe"),
+                    Africa = c("Sub-Saharan Africa") ,
+                    Asia = c("Southern Asia", "Eastern Asia", "Southeastern Asia"),
+                    Australia = c("Australia and New Zealand"),
+                    Latin.America = c("Latin America and Caribbean")))
+
+h16_area_rank <-  mutate(h16_area, happiness_status = case_when(
+       Happiness.Score <= 4.404 ~ "least happy",
+       Happiness.Score > 4.404 & Happiness.Score < 5.382 ~ "somewhat happy",
+       Happiness.Score >= 5.382 & Happiness.Score < 6.269 ~ "happy",
+       Happiness.Score >= 6.269 ~ "very happy")) 
+
+happy_16 <-  rename(h16_area_rank,
+                Happiness_Rank = Happiness.Rank,
+                Happiness_Score = Happiness.Score,
+                GDP_per_Capita = Economy..GDP.per.Capita.,
+                Life_Expectancy = Health..Life.Expectancy.,
+                Government_Corruption = Trust..Government.Corruption.,
+                Dystopia_Residual = Dystopia.Residual) 
+  
+head(happy_16)
+
+```
+```{r}
+colnames(happy_15)
+colnames(happy_16)
+```
+
+
+ selecting tht series of colors as "my_colors" and " happiness_status" which i will use them in different part of the visualisation process such as point plots and map plotsand etc.
+
+
+
+
+```{r}
+my_colors <- c("#2C2433", "#3C4157", "#42627A", "#3F879A", "#38ADB3", "#40D4C1", "#64FAC6")
+swatchplot(my_colors)
+```
+
+```{r}
+happiness_status <- c("#8B0000","#FF7F66","#FFCC66","#FFFF00" )
+swatchplot(happiness_status)
+```
+
+
+ Before starting the visulization part of the project according to the aim of the project , i start to find the different axcpect of the datasets by using Barplot and map to answer the questions below:
+
+>total number of countries in different continent and region in 2015-2016?
+
+>median happines scores in different continent and region in 2015-2016?
+
+>top 10 hppiest and least happiest countries in different years?
+
+
+
+```{r}
+happy_15 %>%
+   
+  
+ggplot(aes(Region, fill = Region)) +
+  geom_bar(stat = "count", show.legend = F, color = 'black') + 
+   coord_flip() +
+  labs(x = "Region", y = "Country Counts", fill = "Region",
+       title = "Number of Countries per Region in 2015") +
+  scale_fill_brewer(palette = "greens")
+  
+```
+
+
+
+```{r}
+mhs15 <- happy_15 %>%
+  select(Region, `Happiness_Score`) %>%
+  group_by(Region) %>%
+  summarise(mn = mean(`Happiness_Score`),md = median(`Happiness_Score`))
+
+ggplot(mhs15, aes(x = fct_reorder(Region, md), y = mn, fill = mn)) +
+  geom_bar(stat = "Identity") +
+  scale_fill_gradient(low = "red", high = "blue") +
+  labs(x = "", y = "Median Happiness Score", fill = "Score",
+  title = "Median Happiness Score by Region in 2015") +
+  theme_light(base_size = 10) +
+  coord_flip()
+
+```
+
+
+```{r}
+happy2015 <- data.frame(country=happy_15$Country, value=happy_15$Happiness_Score)
+happy15 <- joinCountryData2Map(happy2015, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(happy15, nameColumnToPlot="value", mapTitle="Happiness_Score Index in Year 2015",colourPalette=my_colors)
+```
+
+
+```{r}
+  happiest_15 <- happy_15 %>% 
+  select(Country, Region, Happiness_Score) %>% 
+  arrange(desc(Happiness_Score)) %>%  
+  slice(1:10)
+
+  ggplot(happiest_15, aes(x = fct_reorder(Country, Happiness_Score), 
+                          y = Happiness_Score,
+                          fill = Region)) +
+  geom_bar(stat = "identity", color = "black") +
+  labs( x= "Countries",
+        y= "Happiness Score",
+        title =  "Top 10 (Happiest) Countries in year 2015") +
+  coord_flip() 
+```
+
+```{r}
+least_happy_15 <- happy_15 %>% 
+  select(Country, Region, Happiness_Score) %>% 
+  arrange(Happiness_Score) %>%  
+  slice(1:10) %>% 
+  arrange(desc(Happiness_Score))
+
+ggplot(least_happy_15, aes(x = fct_reorder(Country, Happiness_Score), 
+                          y = Happiness_Score,
+                          fill = Region)) +
+  geom_bar(stat = "identity",color = "gray") +
+  labs( x= "Countries",
+        y= "Happiness Score",
+        title =  "Top 10 (Least Happy) Countries in year 2015") +
+  coord_flip()
+```
+
+
+
+```{r}
+happy_16 %>%
+  
+  
+ggplot(aes(Region, fill = Region)) +
+  geom_bar(stat = "count", show.legend = F, color = 'black') + 
+   coord_flip() +
+  labs(x = "Region", y = "Country Counts", fill = "Region",
+       title = "Number of Countries per Region in 2016") +
+  scale_fill_brewer(palette = "Blues")
+  
+
+```
+
+
+```{r}
+
+mhs16 <- happy_16 %>%
+  select(Region, `Happiness_Score`) %>%
+  group_by(Region) %>%
+  summarise(
+            mn = mean(`Happiness_Score`),
+            md = median(`Happiness_Score`))
+
+ggplot(mhs16, aes(x = fct_reorder(Region, md), y = mn, fill = mn)) +
+  geom_bar(stat = "Identity") +
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(x = "", y = "Median Happiness Score", fill = "Score",
+       title = "Median Happiness Score by Region in 2016") +
+  theme_light(base_size = 10) + coord_flip()
+
+
+
+```
+```{r}
+happy2016 <- data.frame(country=happy_16$Country, value=happy_16$Happiness_Score)
+happy16 <- joinCountryData2Map(happy2016, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(happy16, nameColumnToPlot="value", mapTitle="Happiness_Score Index in Year 2016",colourPalette=my_colors)
+
+```
+
+
+```{r}
+  
+  happiest_16 <- happy_16 %>% 
+  select(Country, Region, Happiness_Score) %>% 
+  arrange(desc(Happiness_Score)) %>%  
+  slice(1:10)
+
+  ggplot(happiest_16, aes(x = fct_reorder(Country, Happiness_Score), 
+                          y = Happiness_Score,
+                          fill = Region)) +
+  geom_bar(stat = "identity", color = "black", size = .5) +
+  labs( x= "Countries",
+        y= "Happiness Score",
+        title =  "Top 10 (Happiest) Countries in year 2016") +
+  coord_flip() 
+
+
+```
+
+
+
+```{r}
+ least_happy_16 <- happy_16 %>% 
+  select(Country, Region, Happiness_Score) %>% 
+  arrange(Happiness_Score) %>%  
+  slice(1:10) %>% 
+  arrange(desc(Happiness_Score))
+
+ggplot(least_happy_16, aes(x = fct_reorder(Country, Happiness_Score), 
+                          y = Happiness_Score,
+                          fill = Region)) +
+  geom_bar(stat = "identity",color = "gray") +
+  labs( x= "Countries",
+        y= "Happiness Score",
+        title =  "Top 10 (Least Happy) Countries in year 2016") +
+  coord_flip()
+```
+
+# ** Summary of Dataset observation**
+
+> 1-most of the countries in this survay are from Europe and Africa.
+
+> 2-The happiest regions are Australia, North and Latin America and Europe respectively (if we compare  the number of countries in Europe with the number of other happy regions -Australia, North and Latin America-, most of the countries with a high happiness rate and score are in Europe, so we can consider Europe as the happiest region).
+
+> 3-Least happiest regions are Africa and Asia.
+
+> 4-Nordic countries are the happiest countries in both years (e.g. Denmark, Finland, Iceland, Norway, Sweden), they are among the top 10 happiest countries in 2015-2016.
+
+ all the observations are valid for both years.
+
+
+
+# Correlations Analysis and Visualisation Steps
+
+
+In this part, we will analyze the correlations between the Happiness Score and other six factors and compare countries using the Dystopia Residual Index. So, we start analyzing each factor by using the point plot which contains some horizon lines and vertical lines that help us to find the correlation between Happiness Score and these indices.Then, we compare these factors in different regions using a bar chart, then we show the proportion of this factor in top happiest and least happy countries using a dot plot to find out how this factor affected the happiness score in these countries, and finally we show our observations visually using a map.
+
+ we will do this process for both years 2015 and 2016 separately
+
+
+```{r}
+ num_hap <- happy_15[, c("Happiness_Rank", "Happiness_Score", "GDP_per_Capita", "Family", "Life_Expectancy", "Freedom", "Government_Corruption", "Generosity", "Dystopia_Residual")]
+
+cor15 <- cor(num_hap) 
+corrplot(cor15, method="circle", type='upper', tl.cex=.8, tl.col = my_colors)
+
+```
+From the above chart and following plots that we will use , we can obtain the following conclusions:
+
+>The Happiness Score is highly related with the GDP per Capita,Family (Social Support )and  Life Expectancy.
+>The Happines Score is NOT related at all with the Generosity Variable, which is (in my opinion) a surprise.
+>We can see that in countries with High Level of GDP, they will have a High Life Expectancy and Family Support. So... Rich Countries will be the Happiest, live longer and have more family support.
+
+So, as a first conclusion, we could say that the Happiest Countries will be the ones with higher GDP per capita, Social Support and Life Expectancy and the other way around
+
+
+
+
+**Life Expectancy and Happiness Score :**
+
+ The higher the happiness index, the higher the life expectancy. This shows the positive relationship we mentioned earlier.
+
+The people in the previously mentioned happiest regions live longer than the people in the less happy countries because they have a higher life expectancy.
+
+most of the countries are  located above the life expectancy average ,it means that people in the world are more tend to be optimistic about the future 
+
+
+
+```{r}
+summary(happy_15$Happiness_Score)
+summary(happy_15$Life_Expectancy)
+
+  happy_15 %>%
+
+
+    ggplot(aes(x = Happiness_Score, y = Life_Expectancy,color = Region, size =Happiness_Score, alpha = .3)) +
+  geom_point(stroke=1) +
+  #geom_point(aes(color = Region), stroke=3, size = 2, alpha = .5) +
+  geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   labs( 
+        title =  "Life-exp and happiness corrolation in 2015") +
+     geom_hline(yintercept =0.6303   , linetype = "dotted",color = "darkblue", size = .8) +
+   annotate("text", mean(happy_15$GDP_per_Capita), 0.6303  , vjust = -1, label = "MEAN")
+
+```
+```{r}
+happy_15 %>%
+
+group_by(Region) %>%
+summarise(Life_Expectancy = mean(Life_Expectancy)) %>%
+ggplot(aes(x = Region, y = Life_Expectancy,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Life_Expectancy", title = "Life Expectancy average in different Regions -2015") 
+```
+
+
+
+
+```{r}
+
+happy_15 %>%
+
+  ggplot(aes(x = Happiness_Score, y = Life_Expectancy, color = Region, size = Happiness_Score,alpha = .1)) +
+  geom_point(aes(color = Region), stroke=3, size = 2, alpha = .5)  +
+  facet_wrap(vars(factor(Region))) +
+   labs( 
+        title =  "Life-exp and happiness corrolation per Region in 2015")
+```
+```{r}
+
+top_score <- head(happy_15, n = 10)
+top_score$Country <- factor(top_score$Country, levels = top_score$Countr)
+
+
+
+ggplot(data = top_score, aes(x = Country, y = Life_Expectancy)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Life_Expectancy)) +
+  labs(title = "Top 10 Countries by Overall Life Expectancy in 2015",
+       x = "Countries",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+ there is a suprise fact that we found in plot below. syria's life expectancy index is close to the average which is in contrast with the war situation that they are stuck in. 
+
+```{r}
+
+less_score <- tail(happy_15, n = 10)
+less_score$Country <- factor(less_score$Country, levels = less_score$Country)
+
+
+
+ggplot(data = less_score, aes(x = Country, y = Life_Expectancy)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Life_Expectancy)) +
+  labs(title = "Last 10 Countries by Overall Life Expectancy in 2015",
+       x = "Countries",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+ now we can mention to our results visually by using world map below:
+```{r}
+Life2015 <- data.frame(country=happy_15$Country, value=happy_15$Life_Expectancy)
+Life_15 <- joinCountryData2Map(Life2015, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(Life_15, nameColumnToPlot="value", mapTitle="Life Expectancy Index in Year 2015",colourPalette=my_colors)
+```
+
+
+
+**GDP Per Capita and Happiness Score:**
+
+ The higher the Happiness_Score index, the higher the GDP. This shows the positive relationship we mentioned earlier.
+
+The countries with the highest GDP are happier. This means that the people who make fair contributions to wealth in a country are happier than the people who suffer from a lack of fair contributions to wealth or a lack of wealth.   
+
+You can see that all very happy countries and most happy countries are above the average GDP, which confirms our previous result.
+
+
+```{r}
+summary(happy_15$GDP_per_Capita)
+
+happy_15 %>%
+ggplot(aes(x = Happiness_Score , y = GDP_per_Capita, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(x= Happiness_Score, y = GDP_per_Capita, color = happiness_status)) +
+  labs(title = "Happiness Score and GDP in 2015", fill = "HappinessScore") +
+
+  scale_color_manual(values = happiness_status) +
+  geom_hline(yintercept =0.8461 , linetype = "dotted",color = "darkblue", size = .8) +
+   annotate("text", mean(happy_15$GDP_per_Capita), 0.8461, vjust = -1, label = "MEAN")
+
+
+
+```
+** Australia,North America,Europe and Asia are the richest regions with high GDP range during year 2015.** 
+
+```{r}
+happy_15 %>%
+
+group_by(Region) %>%
+summarise(GDP_per_Capita = mean(GDP_per_Capita)) %>%
+ggplot(aes(x = Region, y = GDP_per_Capita,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "GDP per Capita", title = "GDP average in different Regions -2015") 
+```
+```{r}
+
+top_score <- head(happy_15, n = 10)
+top_score$Country <- factor(top_score$Country, levels = top_score$Country)
+
+
+
+ggplot(data = top_score, aes(x = Country, y = GDP_per_Capita)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = GDP_per_Capita)) +
+  labs(title = "Top 10 Countries by Overall GDP in 2015",
+       x = "",
+       y = "Score")+
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+```{r}
+ggplot(data = less_score, aes(x = Country, y = GDP_per_Capita)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = GDP_per_Capita)) +
+  labs(title = "last 10 Countries by Overall GDP in 2015",
+       x = "",
+       y = "Score")+
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+now we can mention to our results visually by using world map below:
+
+```{r}
+gdp2015 <- data.frame(country=happy_15$Country, value=happy_15$GDP_per_Capita)
+gdp_15 <- joinCountryData2Map(gdp2015, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(gdp_15, nameColumnToPlot="value", mapTitle="GDP Index in Year 2015",colourPalette=my_colors)
+
+```
+
+**Family(social support) and Happinesss score**
+
+family index and happiness score have positive colloration in some cases , most of the happiest countries are located above the avarage ,this trend is also true for other categories but with different proportion ,infact this two factor has a colloration but not strong as much as gdp and life ecpectancy. 
+
+Australia,North America,Europe and Latin America are the reagions with the high social support in 2015. 
+
+
+
+```{r}
+
+summary(happy_15$Family)
+
+happy_15 %>%
+ggplot(aes(x = Happiness_Score , y = Family, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(x= Happiness_Score, y = Family, color = happiness_status)) +
+  labs(title = "Happiness Score and Family in 2015", fill = "HappinessScore") +
+
+  scale_color_manual(values = happiness_status) +
+  geom_hline(yintercept =0.9910   , linetype = "dotted",color = "darkblue", size = .8) +
+   annotate("text", mean(happy_15$Family), 0.9910  , vjust = -1, label = "MEAN")
+```
+
+
+```{r}
+happy_15 %>%
+
+group_by(Region) %>%
+summarise(Family = mean(Family)) %>%
+ggplot(aes(x = Region, y = Family,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Family", title = "Family average in different Regions -2015") 
+```
+
+
+```{r}
+top_score <- head(happy_15, n = 10)
+top_score$Country <- factor(top_score$Country, levels = top_score$Country)
+
+
+
+ggplot(data = top_score, aes(x = Country, y = Family)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Family)) +
+  labs(title = "Top 10 Countries by Overall Family in 2015",
+       x = "",
+       y = "Score")+
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+```{r}
+ggplot(data = less_score, aes(x = Country, y = Family)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Family)) +
+  labs(title = "last 10 Countries by Overall Family in 2015",
+       x = "",
+       y = "Score")+
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+
+```
+According to the map below, most of the countries in Africa and Asia are suffering from social support which we know as family index due to various reasons such as terrorism, war, etc..
+
+```{r}
+Family2015 <- data.frame(country=happy_15$Country, value=happy_15$Family)
+Family_15 <- joinCountryData2Map(Family2015, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(Family_15, nameColumnToPlot="value", mapTitle="Family Index in Year 2015",colourPalette=my_colors)
+```
+
+
+
+
+
+**Freedom and Happiness Score:**
+
+ As we know, there is no close relationship between the freedom index and the happiness index. From the graph below, it is clear that there is no stable relationship between these two factors, but most of the happiest countries that have a higher percentage in the different indices also have a better situation in the freedom index. The next three graphs show that the freedom index is about the same in the 10 happiest countries, which is not predictable for the 10 least happy countries.
+
+
+ Australia, North America and Latin America are the three regions with the highest freedom index.
+
+
+
+
+```{r}
+summary(happy_15$Freedom)
+
+happy_15 %>%
+  ggplot(aes(y = Freedom, x = Happiness_Score, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Freedom in 2015", fill = "HappinessScore") +
+   scale_color_manual(values = happiness_status) +
+  geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+  geom_hline(yintercept =0.4286   , linetype = "dotted",color = "darkblue", size = .8) +
+   annotate("text", mean(happy_15$Freedom  ), 0.4286  , vjust = -1, label = "MEAN") 
+  
+```
+
+```{r}
+happy_15 %>%
+
+group_by(Region) %>%
+summarise(Freedom = mean(Freedom)) %>%
+ggplot(aes(x = Region, y = Freedom,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Freedom", title = "Freedom average in different Regions -2015") 
+```
+
+
+
+```{r}
+ggplot(data = top_score, aes(x = Country, y = Freedom)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Freedom)) +
+  labs(title = "Top 10 Countries by Overall Freedom in 2015",
+       x = "",
+       y = "Score")+
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+```{r}
+
+ggplot(data = less_score, aes(x = Country, y = Freedom)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Freedom)) +
+  labs(title = "Last 10 Countries by Overall Freedom in 2015",
+       x = "",
+       y = "Score")+
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+
+now we can mention to our results visually by using world map below:
+
+```{r}
+Freedom2015 <- data.frame(country=happy_15$Country, value=happy_15$Freedom)
+Freedom_15 <- joinCountryData2Map(Freedom2015, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(Freedom_15, nameColumnToPlot="value", mapTitle="Freedom Index in Year 2015",colourPalette=my_colors)
+```
+
+**Generosity and Happiness Score:**
+
+There is no close relationship between the Generosity index and the happiness index. From the graph below, it is clear that there is no stable relationship between these two factors,except Myanmar,all other countries contain Genrosity  blow the 0.6 and you can find many countries in different cataegory with th different generosity index above or below the avarage generosity line,it means that there is not a specific patter for this index and you can find generous and kind person with different type of happiness in all around the world.
+
+Australia, North America and Asia are respectively the friendliest and most generous people in the world .
+
+
+
+```{r}
+summary(happy_15$Generosity)
+
+
+happy_15 %>%
+ggplot(aes(x = Happiness_Score, y = Generosity, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Generosity in 2015", fill = "HappinessScore") +
+   scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =0.2373     , linetype = "dotted",color = "darkblue", size = .8) +
+   annotate("text", mean(happy_15$Generosity  ), 0.2373    , vjust = -1, label = "MEAN")
+```
+
+```{r}
+happy_15 %>%
+
+group_by(Region) %>%
+summarise(Generosity = mean(Generosity)) %>%
+ggplot(aes(x = Region, y = Generosity,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Generosity", title = "Generosity average in different Regions -2015")
+```
+```{r}
+ggplot(data = top_score, aes(x = Country, y = Generosity)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Generosity)) +
+  labs(title = "Top 10 Countries by Overall Generosity in 2015",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+```{r}
+ggplot(data = less_score, aes(x = Country, y = Generosity)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Generosity)) +
+  labs(title = "Last 10 Countries by Overall Generosity in 2015",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+now we can mention to our results visually by using world map below:
+
+```{r}
+Generosity2015 <- data.frame(country=happy_15$Country, value=happy_15$Generosity)
+Generosity_15 <- joinCountryData2Map(Generosity2015, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(Generosity_15, nameColumnToPlot="value", mapTitle="Generosity Index in Year 2015",colourPalette=my_colors)
+```
+**Government Corruption and Happoiness Score:**
+
+There is no close relationship between the Generosity index and the happiness index. From the graph below, it is clear that there is no stable relationship between this two factors, most of the countries experience government corruption in their country according to their index which is located under the average or very close to it.it is interesting that many countries with high happiness rates have a high corruption rate in their government, it means this index is not able to explain the happiness rate for the countries.
+
+there is not a specific pattern for this index and you can find government corruption with different  happiness status and score in all around the world.
+
+Australia, North America, Middle East and Northern Africa experience the much government corruption in comparison with other regions.
+
+```{r}
+summary(happy_15$Government_Corruption)
+
+
+happy_15 %>%
+ggplot(aes(x = Happiness_Score, y = Government_Corruption, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Government Corruption in 2015", fill = "HappinessScore") +
+     scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =0.14342    , linetype = "dotted",color = "darkblue", size = .8) +
+   annotate("text", mean(happy_15$Government_Corruption  ), 0.14342   , vjust = -1, label = "MEAN")
+```
+```{r}
+happy_15 %>%
+
+group_by(Region) %>%
+summarise(Government_Corruption = mean(Government_Corruption)) %>%
+ggplot(aes(x = Region, y = Government_Corruption,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Government_Corruption", title = "Government Corruption average in different Regions -2015")
+```
+
+```{r}
+
+ggplot(data = top_score, aes(x = Country, y = Government_Corruption)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Government_Corruption)) +
+  labs(title = "Top 10 Countries by Overall Government Corruption in 2015",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+```{r}
+
+ggplot(data = less_score, aes(x = Country, y = Government_Corruption)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Government_Corruption)) +
+  labs(title = "Last 10 Countries by Overall Government Corruption in 2015",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+now we can mention to our results visually by using world map below:
+```{r}
+G_Corruption2015 <- data.frame(country=happy_15$Country, value=happy_15$Government_Corruption)
+G_Corruption_15 <- joinCountryData2Map(G_Corruption2015, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(G_Corruption_15, nameColumnToPlot="value", mapTitle="Government Corruption Index in Year 2015",colourPalette=my_colors)
+```
+**Dystopia Residual and Happoiness Score**
+
+-Dystopia, a hypothetical country that has scores on each of the six factors equal to the lowest national averages in the world. They do not affect the total score given for each country, but they do explain why some countries rank higher than others. From the following charts, we can see that most of the countries with the designation of  very happy and happy have a score above the average, which means that they have a good living situation in several 6 factors that make people happier.Half of the somewhat happy countries and a few of the least happy countries can create the same situation for their people.
+
+-below average or have a low dystopia index show that these countries have a lower index in other factors or that there is no balance between them. This means that a better number in each factor or a balanced number can  increase the dystopia index in these countries.
+
+-Latin America, North America and Australia are the regions with the best dystophy index. This shows that they have created a good situation for their population in 2015 in various factors.
+Moreover, we know before that most happy people live in Australia and North America, which confirms our observation.
+
+```{r}
+summary(happy_15$Dystopia_Residual)
+
+
+happy_15 %>%
+ggplot(aes(x = Happiness_Score, y = Dystopia_Residual, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Government Corruption in 2015", fill = "HappinessScore") +
+     scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =2.0990      , linetype = "dotted",color = "darkblue", size = .8) +
+   annotate("text", mean(happy_15$Dystopia_Residual  ), 2.0990     , vjust = -1, label = "MEAN")
+
+
+```
+
+```{r}
+happy_15 %>%
+
+group_by(Region) %>%
+summarise(Dystopia_Residual = mean(Dystopia_Residual)) %>%
+ggplot(aes(x = Region, y = Dystopia_Residual,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Dystopia_Residual", title = "Dystopia Residual average in different Regions -2015")
+```
+
+
+```{r}
+
+ggplot(data = top_score, aes(x = Country, y = Dystopia_Residual)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Dystopia_Residual)) +
+  labs(title = "Top 10 Countries by Overall Dystopia Residual in 2015",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+```{r}
+
+ggplot(data = less_score, aes(x = Country, y = Dystopia_Residual)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Dystopia_Residual)) +
+  labs(title = " Last 10 Countries by Overall Dystopia_Residual in 2015",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+now we can mention to our results visually by using world map below:
+
+```{r}
+D_Residual2015 <- data.frame(country=happy_15$Country, value=happy_15$Dystopia_Residual)
+D_Residual_15 <- joinCountryData2Map(D_Residual2015, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(D_Residual_15, nameColumnToPlot="value", mapTitle="Dystopia Residual Corruption Index in Year 2015",colourPalette=my_colors)
+```
+
+
+**The 10 first countries are very similar regarding:**
+
+>GDP per capita,Social support,Freedom to make like choice,life expectancy,Generosity (at an average score)
+
+>But diverge on:
+Percption of corruption
+
+**The 10 last countries are similar regarding:**
+
+>Perceptions of corruption (at a low score),life ecpectancy (at a low score) And they have similar score as the 10 higher country concerninng generosity.Generosity is not impacted by the "happiness" of populations.
+
+
+
+
+
+# Life Expectancy and GDP Relation in 2015
+
+>according to the plot below, it is obvious that by increasing the GDP index the life expectancy is also increasing,it means that those countries with the more Gross Domestic Product value are living longer than others who live in countries with the fewer range of this index
+
+```{r}
+happy_15 %>%
+ggplot(aes(y = Life_Expectancy, x = GDP_per_Capita, size =GDP_per_Capita, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Life Expectancy and GDP Relation in 2015") +
+       scale_color_manual(values = happiness_status) +
+
+   geom_hline(yintercept =0.6303     , linetype = "dotted",color = "darkblue", size = .5) +
+   annotate("text", mean(happy_16$GDP_per_Capita  ), 0.6303    , vjust = -1, label = "MEAN")
+```
+
+**From the  chart below  and following plots that we will use , we can obtain the following conclusions:**
+
+The Happiness Score is highly related with the GDP per Capita,Family (Social Support )and  Life Expectancy.
+
+The Happiness Score is NOT related at all with the Generosity Variable, which is (in my opinion) a surprise.
+
+We can see that in countries with High Level of GDP, they will have a High Life Expectancy and Family Support. So... Rich Countries will be the Happiest, live longer and have more family support.
+
+
+So, as a first conclusion, we could say that the Happiest Countries will be the ones with higher GDP per capita, Social Support and Life Expectancy and the other way around
+
+
+```{r}
+num_hap <- happy_16[, c("Happiness_Rank", "Happiness_Score", "GDP_per_Capita", "Family", "Life_Expectancy", "Freedom", "Government_Corruption", "Generosity", "Dystopia_Residual")]
+
+cor16 <- cor(num_hap) #creating correlation matrix
+corrplot(cor16, method="circle", type='full', tl.cex=0.8, tl.col = 'black')
+
+```
+
+
+
+
+**Life Expectancy and Happiness Score :**
+
+ The higher the happiness index, the higher the life expectancy. This shows the positive relationship we mentioned earlier.
+
+The people in the previously mentioned happiest regions live longer than the people in the less happy countries because they have a higher life expectancy.
+
+most of the countries are  located above the life expectancy average ,it means that people in the world are more tend to be optimistic about the future
+
+
+```{r}
+
+
+happy_16 %>%
+   ggplot(aes(x = Happiness_Score, y = Life_Expectancy, color = Region, size = Happiness_Score, alpha = .3)) +
+  
+  geom_point(aes(color = happiness_status,stroke=1)) +
+       scale_color_manual(values = happiness_status) +
+  geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+  labs( 
+        title =  "Life-exp and happiness corrolation in 2016")
+```
+
+```{r}
+happy_16 %>%
+
+group_by(Region) %>%
+summarise(Life_Expectancy = mean(Life_Expectancy)) %>%
+ggplot(aes(x = Region, y = Life_Expectancy,fill = Region)) +
+geom_col() +
+  labs( x =  "", y = "Life_Expectancy", title = "Life Expectancy average in different Regions -2016") +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) 
+```
+
+
+```{r}
+happy_16 %>%
+
+  ggplot(aes(x = Happiness_Score, y = Life_Expectancy, color = Region, size = Happiness_Score,alpha = .1)) +
+   geom_point(aes(color = Region), stroke=3, size = 2, alpha = .5)  +
+   facet_wrap(vars(factor(Region))) +
+   labs( 
+        title =  "Life-exp and happiness corrolation per Region in 2016") 
+```
+
+
+```{r}
+top_score16 <- head(happy_16, n = 10)
+top_score16$Country <- factor(top_score16$Country, levels = top_score16$Countr)
+
+
+
+ggplot(data = top_score16, aes(x = Country, y = Life_Expectancy)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Life_Expectancy)) +
+  labs(title = "Top 10 Countries by Overall Life Expectancy in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+```{r}
+less_score16 <- tail(happy_16, n = 10)
+less_score16$Country <- factor(less_score16$Country, levels = less_score16$Countr)
+
+ggplot(data = less_score16, aes(x = Country, y = Life_Expectancy)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Life_Expectancy)) +
+  labs(title = " Last 10 Countries by Overall Life Expectancy in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+```{r}
+Life2016 <- data.frame(country=happy_16$Country, value=happy_16$Life_Expectancy)
+Life_16 <- joinCountryData2Map(Life2016, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(Life_16, nameColumnToPlot="value", mapTitle="Life Expectancy Index in Year 2016",colourPalette=my_colors)
+```
+**GDP Per Capita and Happiness Score:**
+
+ The higher the Happiness_Score index, the higher the GDP. This shows the positive relationship we mentioned earlier.
+
+The countries with the highest GDP are happier. This means that the people who make fair contributions to wealth in a country are happier than the people who suffer from a lack of fair contributions to wealth or a lack of wealth.   
+
+You can see that most very happy countries and  happy countries are above the average GDP, which confirms our previous result.
+
+```{r}
+summary(happy_16$GDP_per_Capita)
+
+
+happy_16 %>%
+ggplot(aes(x = Happiness_Score,y = GDP_per_Capita, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and GDP in 2016") +
+  scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =0.9539     , linetype = "dotted",color = "darkblue", size = .5) +
+   annotate("text", mean(happy_16$GDP_per_Capita  ), 0.9539    , vjust = -1, label = "MEAN")
+```
+** North America,Australia,Europe and Asia are the richest regions with high GDP range during year 2016.** 
+```{r}
+happy_16 %>%
+
+group_by(Region) %>%
+summarise(GDP_per_Capita = mean(GDP_per_Capita)) %>%
+ggplot(aes(x = Region, y = GDP_per_Capita,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "GDP_per_Capita", title = "GDP_per_Capita average in different Regions -2016")
+```
+```{r}
+ggplot(data = top_score16, aes(x = Country, y = GDP_per_Capita)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = GDP_per_Capita)) +
+  labs(title = "Top 10 Countries by Overall GDP in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+```{r}
+
+
+ggplot(data = less_score16, aes(x = Country, y = GDP_per_Capita)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = GDP_per_Capita)) +
+  labs(title = " Last 10 Countries by Overall GDP in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+```{r}
+gdp2016 <- data.frame(country=happy_16$Country, value=happy_16$GDP_per_Capita)
+gdp_16 <- joinCountryData2Map(gdp2016, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(gdp_16, nameColumnToPlot="value", mapTitle="GDP Index in Year 2016",colourPalette=my_colors)
+```
+**Family(social support) and Happinesss score**
+
+-family index and happiness score have positive colloration in some cases , most of the happiest countries are located above the avarage ,this trend is also true for other categories but with different proportion ,infact this two factor has a colloration but not strong as much as gdp and life ecpectancy.
+
+-Australia,North America,Europe and Latin America are the reagions with the high social support in 2016.
+
+```{r}
+summary(happy_16$Family)
+
+
+happy_16 %>%
+ggplot(aes(x = Happiness_Score,y = Family, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Family in 2016") +
+  scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =0.7936       , linetype = "dotted",color = "darkblue", size = .5) +
+   annotate("text", mean(happy_16$Family  ), 0.7936      , vjust = -1, label = "MEAN")
+```
+
+```{r}
+happy_16 %>%
+
+group_by(Region) %>%
+summarise(Family = mean(Family)) %>%
+ggplot(aes(x = Region, y = Family,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Family", title = "Family average in different Regions -2016")
+```
+
+```{r}
+ggplot(data = top_score16, aes(x = Country, y = Family)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Family)) +
+  labs(title = "Top 10 Countries by Overall Family in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+```{r}
+ggplot(data = less_score16, aes(x = Country, y = Family)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Family)) +
+  labs(title = " Last 10 Countries by Overall Family in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+According to the map below, in 2016 most of the countries in Africa and Asia were suffered from low level social support which we know as family index due to various reasons such as terrorism, war, etc.
+
+```{r}
+Family2016 <- data.frame(country=happy_16$Country, value=happy_16$Family)
+Family_16 <- joinCountryData2Map(Family2016, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(Family_16, nameColumnToPlot="value", mapTitle="Family Index in Year 2016",colourPalette=my_colors)
+```
+**Freedom and Happiness Score:**
+
+ As we know, there is no close relationship between the freedom index and the happiness index. From the graph below, it is clear that there is no stable relationship between these two factors, but most of the happiest countries that have a higher percentage in the different indices also have a better situation in the freedom index. The next three graphs show that the freedom index is about the same in the 10 happiest countries, which is not predictable for the 10 least happy countries.
+
+
+ Australia, North America and Latin America are the three regions with the highest freedom index.
+
+
+```{r}
+summary(happy_16$Freedom)
+
+
+happy_16 %>%
+ggplot(aes(x = Happiness_Score, y = Freedom, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Freedom in 2016") +
+  scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =0.3710     , linetype = "dotted",color = "darkblue", size = .5) +
+   annotate("text", mean(happy_16$Freedom  ), 0.3710    , vjust = -1, label = "MEAN")
+```
+
+```{r}
+happy_16 %>%
+
+group_by(Region) %>%
+summarise(Freedom = mean(Freedom)) %>%
+ggplot(aes(x = Region, y = Freedom,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Freedom", title = "Freedom average in different Regions -2016")
+```
+```{r}
+ggplot(data = top_score16, aes(x = Country, y = Freedom)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Freedom)) +
+  labs(title = "Top 10 Countries by Overall Freedom in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+```{r}
+
+ggplot(data = less_score16, aes(x = Country, y = Freedom)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Freedom)) +
+  labs(title = " Last 10 Countries by Overall Freedom in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+```{r}
+Freedom2016 <- data.frame(country=happy_16$Country, value=happy_16$Freedom)
+Freedom_16 <- joinCountryData2Map(Freedom2016, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(Freedom_16, nameColumnToPlot="value", mapTitle="Freedom Index in Year 2016",colourPalette=my_colors)
+```
+**Generosity and Happiness Score:**
+
+There is no close relationship between the Generosity index and the happiness index. From the graph below, it is clear that there is no stable relationship between these two factors,except Myanmar,all other countries contain Genrosity  blow the 0.6 and you can find many countries in different cataegory with th different generosity index above or below the avarage generosity line,it means that there is not a specific patter for this index and you can find generous and kind person with different type of happiness in all around the world.
+
+Australia, North America and Asia are respectively the friendliest and most generous people in the world .
+
+
+```{r}
+summary(happy_16$Generosity)
+
+
+happy_16 %>%
+ggplot(aes(x = Happiness_Score, y = Generosity, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Generosity in 2016") +
+  scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =0.2426     , linetype = "dotted",color = "darkblue", size = .5) +
+   annotate("text", mean(happy_16$Generosity  ), 0.2426    , vjust = -1, label = "MEAN")
+```
+
+
+```{r}
+happy_16 %>%
+
+group_by(Region) %>%
+summarise(Generosity = mean(Generosity)) %>%
+ggplot(aes(x = Region, y = Generosity,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Generosity", title = "Generosity average in different Regions -2016")
+```
+```{r}
+ggplot(data = top_score16, aes(x = Country, y = Generosity)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Generosity)) +
+  labs(title = "Top 10 Countries by Overall Generosity in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+
+```{r}
+
+ggplot(data = less_score16, aes(x = Country, y = Generosity)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Generosity)) +
+  labs(title = " Last 10 Countries by Overall Generosity in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+
+```{r}
+Generosity2016 <- data.frame(country=happy_16$Country, value=happy_16$Generosity)
+Generosity_16 <- joinCountryData2Map(Generosity2016, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(Generosity_16, nameColumnToPlot="value", mapTitle="Generosity Index in Year 2016",colourPalette=my_colors)
+```
+**Government Corruption and Happoiness Score:**
+
+There is no close relationship between the Generosity index and the happiness index. From the graph below, it is clear that there is no stable relationship between this two factors, most of the countries experience government corruption in their country according to their index which is located under the average or very close to it.it is interesting that many countries with high happiness rates have a high corruption rate in their government, it means this index is not able to explain the happiness rate for the countries.
+
+there is not a specific pattern for this index and you can find government corruption with different  happiness status and score in all around the world.
+
+Australia, North America, Middle East and Northern Africa experience the much government corruption in comparison with other regions.
+
+
+```{r}
+summary(happy_16$Government_Corruption)
+
+
+happy_16 %>%
+ggplot(aes(x = Happiness_Score, y = Government_Corruption, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Government Corruption in 2016") +
+  scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =0.13762    , linetype = "dotted",color = "darkblue", size = .5) +
+   annotate("text", mean(happy_16$Government_Corruption  ), 0.13762   , vjust = -1, label = "MEAN")
+
+```
+
+```{r}
+happy_16 %>%
+
+group_by(Region) %>%
+summarise(Government_Corruption = mean(Government_Corruption)) %>%
+ggplot(aes(x = Region, y = Government_Corruption,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Government_Corruption", title = "Government Corruption average in different Regions -2016")
+```
+
+```{r}
+ggplot(data = top_score16, aes(x = Country, y = Government_Corruption)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Government_Corruption)) +
+  labs(title = "Top 10 Countries by Overall Government Corruption in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+
+```{r}
+ggplot(data = less_score16, aes(x = Country, y = Government_Corruption)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Government_Corruption)) +
+  labs(title = " Last 10 Countries by Overall GovernmentCorruption in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+less_score16
+```
+
+
+
+```{r}
+G_Corruption2016 <- data.frame(country=happy_16$Country, value=happy_16$Government_Corruption)
+G_Corruption_16 <- joinCountryData2Map(G_Corruption2016, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(G_Corruption_16, nameColumnToPlot="value", mapTitle="Government Corruption Index in Year 2016",colourPalette=my_colors)
+```
+**Dystopia Residual and Happiness Score**
+
+-Dystopia, a hypothetical country that has scores on each of the six factors equal to the lowest national averages in the world. They do not affect the total score given for each country, but they do explain why some countries rank higher than others. From the following charts, we can see that most of the countries with the designation of  very happy and happy have a score above the average, which means that they have a good living situation in several 6 factors that make people happier.Half of the somewhat happy countries and a few of the least happy countries can create the same situation for their people.
+
+-below average or have a low dystopia index show that these countries have a lower index in other factors or that there is no balance between them. This means that a better number in each factor or a balanced number can  increase the dystopia index in these countries.
+
+-Latin America, North America and Australia are the regions with the best dystophy index. This shows that they have created a good situation for their population in 2015 in various factors.
+Moreover, we know before that most happy people live in Australia and North America, which confirms our observation.
+
+
+```{r}
+summary(happy_16$Dystopia_Residual)
+
+
+happy_16 %>%
+ggplot(aes(x = Happiness_Score, y = Dystopia_Residual, size =Happiness_Score, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Happiness Score and Government Corruption in 2016", fill = "HappinessScore") +
+     scale_color_manual(values = happiness_status) +
+   geom_vline(xintercept=4.526,color='red', size=1, linetype='dotted',) +
+  geom_vline(xintercept=5.376,color='red', size=1, linetype='dotted') +
+  geom_vline(xintercept=6.224,color='red', size=1, linetype='dotted') +
+   geom_hline(yintercept =2.3258        , linetype = "dotted",color = "darkblue", size = .8) +
+   annotate("text", mean(happy_15$Dystopia_Residual  ), 2.3258       , vjust = -1, label = "MEAN")
+
+
+```
+
+
+```{r}
+
+happy_16 %>%
+
+group_by(Region) %>%
+summarise(Dystopia_Residual = mean(Dystopia_Residual)) %>%
+ggplot(aes(x = Region, y = Dystopia_Residual,fill = Region)) +
+geom_col() +
+   theme(axis.text.x = element_text(angle = 30, hjust=1)) +
+  labs( x =  "", y = "Dystopia_Residual", title = "Dystopia Residual average in different Regions -2016")
+```
+
+```{r}
+ggplot(data = top_score16, aes(x = Country, y = Dystopia_Residual)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Dystopia_Residual)) +
+  labs(title = "Top 10 Countries by Overall Dystopia Residual in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+```{r}
+ggplot(data = less_score16, aes(x = Country, y = Dystopia_Residual)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = Country,
+                   xend = Country,
+                   y = 0,
+                   yend = Dystopia_Residual)) +
+  labs(title = " Last 10 Countries by Overall Dystopia Residual in 2016",
+       x = "",
+       y = "Score") +
+  theme(axis.text.x = element_text(angle = 30, hjust=1))
+```
+
+
+```{r}
+D_Residual2016 <- data.frame(country=happy_16$Country, value=happy_16$Dystopia_Residual)
+D_Residual_16 <- joinCountryData2Map(D_Residual2016, joinCode="NAME", nameJoinColumn="country")
+mapCountryData(D_Residual_16, nameColumnToPlot="value", mapTitle="Dystopia Residual Corruption Index in Year 2016",colourPalette=my_colors)
+```
+**The 10 first countries are very similar regarding:**
+
+GDP per capita,Social support,Freedom to make like choice,life expectancy,Generosity (at an average score)
+
+But diverge on:
+Percption of corruption
+
+**The 10 last countries are similar regarding:**
+
+Perceptions of corruption (at a low score),life ecpectancy (at a low score) And they have similar score as the 10 higher country concerninng generosity.Generosity is not impacted by the "happiness" of populations.
+
+
+
+# Life Expectancy and GDP Relation in 2016
+
+according to the plot below, it is obvious that by increasing the GDP index the life expectancy is also increasing,it means that those countries with the more Gross Domestic Product value are living longer than others who live in countries with the fewer range of this index
+
+```{r}
+ggplot(happy_16,aes(y = Life_Expectancy, x = GDP_per_Capita, size =GDP_per_Capita, alpha = .3)) + 
+  geom_point(aes(color = happiness_status)) +
+  labs(title = "Life Expectancy and GDP  Relation in 2016") +
+  scale_color_manual(values = happiness_status) +
+   geom_hline(yintercept =0.5576  , linetype = "dotted",color = "darkblue", size = .5) +
+   annotate("text", mean(happy_16$GDP_per_Capita  ), 0.5576 , vjust = -1, label = "MEAN")
+
+```
+
+
+
+
+ 
+
+
+
+# Countries Analysis to find the increment or decrement for each index between 2015 and 2016
+
+
+>In this part, I will compare all the factors in both years to find the appropriate pattern for the changes in the countries in 2015-2016. I explain my observations and results after each chart to clarify what causes these positive or negative changes and in which region these changes were particularly pronounced and why?
+
+
+
+
+
+
+**Happiness Score**
+
+-according to the plot below happiness score in 2016 became increased in all countries, which means that countries became happier in the year 2016 rather than the previous year,
+
+-Algeria,Togo and Latvia experienced the most change in the range of happiness score respectively.
+
+
+
+```{r}
+dif15<-happy_15 %>% select(Country,Region,HS15=Happiness_Score)
+dif16<-happy_16 %>% select(Country,Region,HS16=Happiness_Score)
+
+difference<-inner_join(dif15,dif16)%>% 
+  mutate(score_diff= HS16-HS15)%>%
+  filter(score_diff>0)
+  
+arrange(difference, desc(score_diff)) 
+  
+
+difference$Country <- factor(difference$Country, levels=as.character(difference$Country))
+ggplot(difference, aes(x=HS15, xend=HS16, y=Country)) + 
+  geom_dumbbell(size=2, color="#e3e2e1", 
+                colour_x = "#5b8124", colour_xend = "#bad744",
+                dot_guide=TRUE, dot_guide_size=.15,show.legend = TRUE) + 
+    labs(x=NULL, 
+       y=NULL, 
+        
+       title=" Country Happiness Scores Increased: 2015 vs 2016"
+       ) +
+  theme(plot.title = element_text(hjust=0.5, face="bold"))+
+   theme(legend.position="top",
+              axis.text=element_text(size = 6))
+              
+        
+
+```
+**GDP Per Capita **
+
+-according to the plot below GDP index in 2016 became increased in all countries, which means that countries become richer in the year 2016 rather than the previous year, there is not any specific pattern for this increment, so as we know before about the positive collaboration between GDP and Happiness Score, it is obvious that countries became happier in the year 2016 which confirm our result in the previous part.
+
+-Tanzania, Mongolia, and Mauritania experienced the most change in the range of GDP scores respectively.Africa and Asia are two regions with much change in this index between 2015-2016
+
+
+
+```{r}
+dif15<-happy_15 %>% select(Country,Region,gdp15=GDP_per_Capita)
+dif16<-happy_16 %>% select(Country,Region,gdp16=GDP_per_Capita)
+
+difference<-inner_join(dif15,dif16)%>% 
+  mutate(score_diff= gdp16-gdp15)%>%
+  filter(score_diff>0.1) 
+
+arrange(difference, desc(score_diff)) 
+
+
+
+difference$Country <- factor(difference$Country, levels=as.character(difference$Country))
+ggplot(difference, aes(x=gdp15, xend=gdp16, y=Country)) + 
+  geom_dumbbell(size=2, color="#e3e2e1", 
+                colour_x = "#5b8124", colour_xend = "#bad744",
+                dot_guide=TRUE, dot_guide_size=.15,show.legend = TRUE) + 
+    labs(x=NULL, 
+       y=NULL, 
+        
+       title=" Country GDP Scores Increased: 2015 vs 2016"
+       ) +
+  theme(plot.title = element_text(hjust=0.5, face="bold"))+
+   theme(legend.position="top",
+              axis.text=element_text(size = 6))
+       
+       
+```
+
+**Family**
+
+According to the graph below, the Family Index decreased in 2016 in all countries, which means that people and the government provided less support in 2016 than in the previous year. There is no specific pattern for this increase, and since we already know about the correlation between family and happiness factor, it is obvious that people were very isolated in these two years in 2016.
+
+-Tanzania,Mongolia and Mauritania experienced the most change in the range of Family score respectively.Africa and Middle East are two regions with much change in this index between 2015-2016,it means social support became much decrease in these parts of the world 
+
+
+```{r}
+dif15<-happy_15 %>% select(Country,Region,family15=Family)
+dif16<-happy_16 %>% select(Country,Region,family16=Family)
+
+difference<-inner_join(dif15,dif16) %>%
+  mutate(score_diff= family16-family15) %>%
+  filter(score_diff< -0.2)  
+  
+  
+arrange(difference, (score_diff)) 
+
+
+difference$Country <- factor(difference$Country, levels=as.character(difference$Country))
+ggplot(difference, aes(x=family16, xend=family15, y=Country)) + 
+  geom_dumbbell(size=2, color="#e3e2e1", 
+                colour_xend = "#5b8124", colour_x = "#bad744",
+                dot_guide=TRUE, dot_guide_size=.15,show.legend = TRUE) + 
+    labs(x=NULL, 
+       y=NULL, 
+        
+       title=" Country Family Scores decreased: 2015 vs 2016"
+       ) +
+  theme(plot.title = element_text(hjust=0.5, face="bold"))+
+   theme(legend.position="top",
+              axis.text=element_text(size = 6))
+       
+```
+
+** Life Expectancy**
+
+-according to the plot below Life Expectancy index in 2016 became decreased in all countries, which means that people  became less hopeful about their future in the year 2016 rather than the previous year.
+
+-Cambodia,Libya, and Zimbabwe experienced the most change in the range of Life Expectancy score respectively.Africa and Middle East are two regions with much change in this index between 2015-2016,it means Life Expectancy became much decrease in these parts of the world. we can mention to war, terrorism and some other political and economical issue as a reason of these decrements.
+
+
+```{r}
+dif15<-happy_15 %>% select(Country,Region,life15=Life_Expectancy)
+dif16<-happy_16 %>% select(Country,Region,life16=Life_Expectancy)
+
+difference<-inner_join(dif16,dif15)%>% 
+  mutate(score_diff= life16-life15) %>%
+  filter(score_diff< -.08)
+
+arrange(difference, (score_diff)) 
+
+difference$Country <- factor(difference$Country, levels=as.character(difference$Country))
+ggplot(difference, aes(x=life15, xend=life16, y=Country)) + 
+  geom_dumbbell(size=2, color="#e3e2e1", 
+                colour_x = "#5b8124", colour_xend = "#bad744",
+                dot_guide=TRUE, dot_guide_size=.15,show.legend = TRUE) + 
+    labs(x=NULL, 
+       y=NULL, 
+        
+       title=" Country Life Expectancy Scores decreased: 2015 vs 2016"
+       ) +
+  theme(plot.title = element_text(hjust=0.5, face="bold"))+
+   theme(legend.position="top",
+              axis.text=element_text(size = 6))
+       
+```
+
+**Freedom**
+
+-according to the plot below Freedom index in 2016 became decreased in all countries, which means that people  became frustrated about their social situation and government decisions  in the year 2016 rather than the previous year.
+
+-Venezuela,Morocco and Malaysia experienced the most change in the range of Freedom score respectively.Latin America and Middle East are two regions with much change in this index between 2015-2016.some domestic conflict and government decision can be consider as reasons of freedom reduction.specially in Yemen,Ukraine and Venezuela.
+
+
+
+```{r}
+dif15<-happy_15 %>% select(Country,Region,free15=Freedom)
+dif16<-happy_16 %>% select(Country,Region,free16=Freedom)
+
+difference<-inner_join(dif15,dif16)%>% 
+  mutate(score_diff= free16-free15)%>%
+  filter(score_diff< -.06) 
+
+arrange(difference, (score_diff)) 
+
+difference$Country <- factor(difference$Country, levels=as.character(difference$Country))
+ggplot(difference, aes(x=free15, xend=free16, y=Country)) + 
+  geom_dumbbell(size=2, color="#e3e2e1", 
+                colour_x = "#5b8124", colour_xend = "#bad744",
+                dot_guide=TRUE, dot_guide_size=.15,show.legend = TRUE) + 
+    labs(x=NULL, 
+       y=NULL, 
+        
+       title=" Country Freedom Scores decreased: 2015 vs 2016"
+       ) +
+  theme(plot.title = element_text(hjust=0.5, face="bold"))+
+   theme(legend.position="top",
+              axis.text=element_text(size = 6))
+       
+```
+**Government Corruption**
+
+-According to the graph below, the government corruption index increased in most countries in 2016, which means that people could no longer rely on their government agencies and organizations. In fact, corruption in any government can make people frustrated and unhappy, so this increase between two years shows that this index cannot affect people mentally as much as we thought before, because the happiness we observe in the first graph in this part has increased.
+
+
+-The European countries (the more eastern part of Europe) are the countries where government corruption has changed the most compared to other parts of the world. From this we can conclude that government corruption tends to occur in those countries where there are  fewer controls in all areas of government and it has nothing to do with war,  domestic and international conflic
+
+
+
+
+```{r}
+  
+dif15<-happy_15 %>% select(Country,Region,gc15=Government_Corruption)
+dif16<-happy_16 %>% select(Country,Region,gc16=Government_Corruption)
+
+difference<-inner_join(dif15,dif16)%>% 
+  mutate(score_diff= gc16-gc15)%>%
+  filter(score_diff>0) 
+
+arrange(difference, desc(score_diff)) 
+
+difference$Country <- factor(difference$Country, levels=as.character(difference$Country))
+ggplot(difference, aes(x=gc15, xend=gc16, y=Country)) + 
+  geom_dumbbell(size=2, color="#e3e2e1", 
+                colour_x = "#5b8124", colour_xend = "#bad744",
+                dot_guide=TRUE, dot_guide_size=.15,show.legend = TRUE) + 
+    labs(x=NULL, 
+       y=NULL, 
+        
+       title=" Country Government Corruption Scores Increased: 2015 vs 2016"
+       ) +
+  theme(plot.title = element_text(hjust=0.5, face="bold"))+
+   theme(legend.position="top",
+              axis.text=element_text(size = 6))
+       
+       
+```
+
+**Generosity**
+
+-Fortunately, according to the graph below, the index of generosity increased in all countries in 2016, which means that people became more generous and kind in 2016, despite all the problems they faced. It is good news that the index of generosity has increased regardless of the weak relationship with happiness that we have previously identified using the correlation graph.
+
+
+- This generosity is observed in the countries with the lowest happiness factor and is most pronounced in the countries of Africa and the Middle East. It means that despite the many problems that exist in their countries, they help each other more than before. I think this fact is one of the most important observations I made in my project.
+
+
+
+```{r}
+dif15<-happy_15 %>% select(Country,Region,gen15=Generosity)
+dif16<-happy_16 %>% select(Country,Region,gen16=Generosity)
+
+difference<-inner_join(dif15,dif16)%>% 
+  mutate(score_diff= gen16-gen15)%>%
+  filter(score_diff>0) 
+
+arrange(difference,(score_diff)) 
+
+difference$Country <- factor(difference$Country, levels=as.character(difference$Country))
+ggplot(difference, aes(x=gen15, xend=gen16, y=Country)) + 
+  geom_dumbbell(size=2, color="#e3e2e1", 
+                colour_x = "#5b8124", colour_xend = "#bad744",
+                dot_guide=TRUE, dot_guide_size=.15,show.legend = TRUE) + 
+    labs(x=NULL, 
+       y=NULL, 
+        
+       title=" Country Generosity Scores Increased: 2015 vs 2016"
+       ) +
+  theme(plot.title = element_text(hjust=0.5, face="bold"))+
+   theme(legend.position="top",
+              axis.text=element_text(size = 6))
+
+ 
+```
+*Dystopia Residual*
+
+According to the graph below, the dystopia index increased in 2016 in all countries, which means that the situation of people based on the important factors that we observe in this project increased and improved compared to 2015.We can cite two important reasons to explain how this development occurred.First, countries tend to balance their situation in all factors by increasing the factors that affected their dystophia index in previous years. Second, there are some countries that tend to improve as much as possible, regardless of their ranking, and tend to improve more and more compared to the previous year.
+
+
+
+```{r}
+
+dif15<-happy_15 %>% select(Country,Region,dr15=Dystopia_Residual)
+dif16<-happy_16 %>% select(Country,Region,dr16=Dystopia_Residual)
+
+difference<-inner_join(dif15,dif16)%>% 
+  mutate(score_diff= dr16-dr15)%>%
+  filter(score_diff> .18) 
+
+arrange(difference,score_diff)
+
+difference$Country <- factor(difference$Country, levels=as.character(difference$Country))
+ggplot(difference, aes(x=dr15, xend=dr16, y=Country)) + 
+  geom_dumbbell(size=2, color="#e3e2e1", 
+                colour_x = "#5b8124", colour_xend = "#bad744",
+                dot_guide=TRUE, dot_guide_size=.15,show.legend = TRUE) + 
+    labs(x=NULL, 
+       y=NULL, 
+        
+       title=" Country Dystopia Residual Scores Increased: 2015 vs 2016"
+       ) +
+  theme(plot.title = element_text(hjust=0.5, face="bold"))+
+   theme(legend.position="top",
+              axis.text=element_text(size = 6))
+  
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
